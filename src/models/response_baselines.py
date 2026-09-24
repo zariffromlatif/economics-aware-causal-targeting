@@ -33,12 +33,16 @@ class ResponseModelResults:
     train_score: float
 
 
+from src.utils.hardware import get_xgboost_device_params
+
+
 class ResponseBaseline:
     """Wrapper for training and scoring conventional response models."""
 
-    def __init__(self, model_type: str = "xgboost", random_state: int = 42):
+    def __init__(self, model_type: str = "xgboost", device: str = "auto", random_state: int = 42):
         self.model_type = model_type.lower()
         self.random_state = random_state
+        self.device = device
         if self.model_type == "logistic":
             self.model = LogisticRegression(
                 max_iter=1000,
@@ -46,6 +50,7 @@ class ResponseBaseline:
                 random_state=random_state,
             )
         elif self.model_type == "xgboost":
+            dev_params = get_xgboost_device_params(device)
             self.model = xgb.XGBClassifier(
                 n_estimators=150,
                 max_depth=4,
@@ -54,6 +59,7 @@ class ResponseBaseline:
                 colsample_bytree=0.8,
                 random_state=random_state,
                 eval_metric="logloss",
+                **dev_params,
             )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")

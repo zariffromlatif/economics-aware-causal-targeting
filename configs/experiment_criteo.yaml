@@ -1,0 +1,49 @@
+experiment:
+  name: "criteo_uplift_large_scale_validation"
+  seed: 42
+  description: "External Validation of Causal Targeting on Criteo Uplift Benchmark (~13.98M rows)"
+
+hardware:
+  preferred_device: "cuda"  # Auto-switches to RTX 4090 on Power PC
+  batch_size: 262144        # 256k rows per batch on 24GB VRAM
+  n_jobs: 32                # 32 threads on i9-14900K
+
+data:
+  raw_path: "data/raw/criteo-uplift-v2.1.csv.gz"
+  remote_url: "http://go.criteo.net/criteo-research-uplift-v2.1.csv.gz"
+  sample_size_debug: 100000   # For local laptop prototyping
+  full_rows: 13979592         # For full Power PC run
+
+features:
+  numeric:
+    - "f0"
+    - "f1"
+    - "f2"
+    - "f3"
+    - "f4"
+    - "f5"
+    - "f6"
+    - "f7"
+    - "f8"
+    - "f9"
+    - "f10"
+    - "f11"
+
+treatment:
+  column: "treatment"
+
+outcomes:
+  conversion: "conversion"
+  visit: "visit"
+
+splits:
+  train_ratio: 0.70
+  test_ratio: 0.30
+
+evaluation:
+  budget_fractions:
+    - 0.05
+    - 0.10
+    - 0.20
+    - 0.30
+    - 0.50

@@ -14,6 +14,9 @@ from sklearn.linear_model import LogisticRegression, Ridge
 import xgboost as xgb
 
 
+from src.utils.hardware import get_xgboost_device_params
+
+
 class DoublyRobustLearner:
     """Doubly Robust (DR) Learner with K-fold cross-fitting.
     
@@ -30,18 +33,22 @@ class DoublyRobustLearner:
         is_classification: bool = True,
         use_known_propensity: bool = True,
         known_propensity: float = 0.5,
+        device: str = "auto",
         random_state: int = 42,
     ):
         self.n_splits = n_splits
         self.is_classification = is_classification
         self.use_known_propensity = use_known_propensity
         self.known_propensity = known_propensity
+        self.device = device
         self.random_state = random_state
 
         if final_regressor is None:
+            dev_params = get_xgboost_device_params(device)
             self.final_regressor = xgb.XGBRegressor(
                 n_estimators=150, max_depth=3, learning_rate=0.05,
-                subsample=0.8, colsample_bytree=0.8, random_state=random_state
+                subsample=0.8, colsample_bytree=0.8, random_state=random_state,
+                **dev_params,
             )
         else:
             self.final_regressor = clone(final_regressor)

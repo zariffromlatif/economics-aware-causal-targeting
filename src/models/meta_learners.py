@@ -14,6 +14,7 @@ import pandas as pd
 from sklearn.base import clone, BaseEstimator
 from sklearn.linear_model import LogisticRegression, Ridge
 import xgboost as xgb
+from src.utils.hardware import get_xgboost_device_params
 
 
 class SLearner:
@@ -22,19 +23,23 @@ class SLearner:
     tau(X) = mu(X, 1) - mu(X, 0)
     """
 
-    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True):
+    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True, device: str = "auto"):
         self.is_classification = is_classification
+        self.device = device
         if base_estimator is None:
+            dev_params = get_xgboost_device_params(device)
             if is_classification:
                 self.base_estimator = xgb.XGBClassifier(
                     n_estimators=150, max_depth=4, learning_rate=0.05,
                     subsample=0.8, colsample_bytree=0.8, random_state=42,
-                    eval_metric="logloss"
+                    eval_metric="logloss",
+                    **dev_params,
                 )
             else:
                 self.base_estimator = xgb.XGBRegressor(
                     n_estimators=150, max_depth=4, learning_rate=0.05,
-                    subsample=0.8, colsample_bytree=0.8, random_state=42
+                    subsample=0.8, colsample_bytree=0.8, random_state=42,
+                    **dev_params,
                 )
         else:
             self.base_estimator = clone(base_estimator)
@@ -70,20 +75,24 @@ class TLearner:
     tau(X) = mu_1(X) - mu_0(X)
     """
 
-    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True):
+    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True, device: str = "auto"):
         self.is_classification = is_classification
+        self.device = device
         if base_estimator is None:
+            dev_params = get_xgboost_device_params(device)
             if is_classification:
                 self.model_0 = xgb.XGBClassifier(
                     n_estimators=150, max_depth=4, learning_rate=0.05,
                     subsample=0.8, colsample_bytree=0.8, random_state=42,
-                    eval_metric="logloss"
+                    eval_metric="logloss",
+                    **dev_params,
                 )
                 self.model_1 = clone(self.model_0)
             else:
                 self.model_0 = xgb.XGBRegressor(
                     n_estimators=150, max_depth=4, learning_rate=0.05,
-                    subsample=0.8, colsample_bytree=0.8, random_state=42
+                    subsample=0.8, colsample_bytree=0.8, random_state=42,
+                    **dev_params,
                 )
                 self.model_1 = clone(self.model_0)
         else:
@@ -129,14 +138,17 @@ class XLearner:
     or heterogeneous response densities.
     """
 
-    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True):
+    def __init__(self, base_estimator: Optional[BaseEstimator] = None, is_classification: bool = True, device: str = "auto"):
         self.is_classification = is_classification
-        self.t_learner = TLearner(base_estimator=base_estimator, is_classification=is_classification)
+        self.device = device
+        self.t_learner = TLearner(base_estimator=base_estimator, is_classification=is_classification, device=device)
         
+        dev_params = get_xgboost_device_params(device)
         # Second stage residual estimators (always regressors since imputed residuals are continuous)
         self.effect_model_0 = xgb.XGBRegressor(
             n_estimators=100, max_depth=3, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, random_state=42
+            subsample=0.8, colsample_bytree=0.8, random_state=42,
+            **dev_params,
         )
         self.effect_model_1 = clone(self.effect_model_0)
         self.propensity_model = LogisticRegression(max_iter=1000, random_state=42)
