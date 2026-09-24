@@ -1,0 +1,76 @@
+experiment:
+  name: "hillstrom_economics_causal_targeting"
+  seed: 42
+  description: "Economics-Aware Causal Marketing Targeting on Hillstrom MineThatData"
+
+data:
+  raw_path: "data/raw/hillstrom.csv"
+  processed_train_path: "data/processed/train.parquet"
+  processed_val_path: "data/processed/val.parquet"
+  processed_test_path: "data/processed/test.parquet"
+  remote_urls:
+    - "http://www.minethatdata.com/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv"
+    - "https://raw.githubusercontent.com/maks-sh/scikit-uplift/master/sklift/datasets/data/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv"
+    - "https://raw.githubusercontent.com/uber/causalml/master/causalml/datasets/data/Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv"
+
+features:
+  numeric:
+    - "recency"
+    - "history"
+  categorical:
+    - "history_segment"
+    - "zip_code"
+    - "channel"
+  binary:
+    - "mens"
+    - "womens"
+    - "newbie"
+
+treatment:
+  column: "segment"
+  control_val: "No E-Mail"
+  mens_val: "Mens E-Mail"
+  womens_val: "Womens E-Mail"
+
+outcomes:
+  revenue: "spend"
+  conversion: "conversion"
+  visit: "visit"
+
+splits:
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+  stratify_col: "segment"
+
+economics:
+  default_margin: 0.50
+  default_cost: 0.25
+  scenario_margins:
+    - 0.20
+    - 0.40
+    - 0.60
+    - 0.80
+  scenario_costs:
+    - 0.05
+    - 0.10
+    - 0.25
+    - 0.50
+    - 0.75
+    - 1.00
+    - 1.50
+    - 2.00
+  budget_fractions:
+    - 0.05
+    - 0.10
+    - 0.20
+    - 0.30
+    - 0.40
+    - 0.50
+    - 0.60
+    - 0.80
+    - 1.00
+
+evaluation:
+  n_bootstraps: 500
+  ci_level: 0.95
