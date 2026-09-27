@@ -3,11 +3,11 @@
 |    | Policy                                | Targeted (%)   | Mens (%)   | Womens (%)   |   Gross Spend ($) |   Mean Cost ($) |   Net Policy Value ($) |
 |----|---------------------------------------|----------------|------------|--------------|-------------------|-----------------|------------------------|
 |  0 | Baseline (No Contact)                 | 0.0%           | 0.0%       | 0.0%         |            0.5661 |          0.0000 |                 0.2831 |
-|  1 | Uniform Mens E-Mail (Global Best)     | 20.0%          | 20.0%      | 0.0%         |            0.8787 |          0.0500 |                 0.3893 |
-|  2 | Uniform Womens E-Mail                 | 20.0%          | 0.0%       | 20.0%        |            0.7369 |          0.0500 |                 0.3185 |
-|  3 | Personalized Causal Policy (Proposed) | 20.0%          | 11.5%      | 8.5%         |            0.6802 |          0.0500 |                 0.2901 |
+|  1 | Uniform Mens E-Mail (Global Best)     | 20.0%          | 20.0%      | 0.0%         |            0.8150 |          0.0500 |                 0.3575 |
+|  2 | Uniform Womens E-Mail                 | 20.0%          | 0.0%       | 20.0%        |            0.7252 |          0.0500 |                 0.3126 |
+|  3 | Personalized Causal Policy (Proposed) | 20.0%          | 11.8%      | 8.2%         |            0.6230 |          0.0500 |                 0.2615 |
 
 **Hypothesis H7 Test (Personalized vs Uniform Mens)**:
-- Point Estimate Difference: $-0.0992
-- 95% Bootstrap CI: [$-0.2563, $+0.0565]
-- Empirical p-value: 0.2320
+- Point Estimate Difference: $-0.0960
+- 95% Bootstrap CI: [$-0.2886, $+0.0635]
+- Empirical p-value: 0.2720
