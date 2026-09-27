@@ -95,7 +95,9 @@ def prepare_hillstrom_splits(
     
     path = Path(csv_path)
     if not path.exists():
-        raise FileNotFoundError(f"Dataset not found at {csv_path}. Run download.py first.")
+        print(f"[INFO] Dataset not found at {csv_path}. Auto-downloading...")
+        from src.data.download import download_hillstrom
+        download_hillstrom(target_path=str(path))
 
     raw_df = pd.read_csv(path)
 
