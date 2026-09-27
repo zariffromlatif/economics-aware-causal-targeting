@@ -26,36 +26,43 @@ from src.visualization.plots_uplift import plot_uplift_curves
 
 
 def run_criteo_benchmark(
-    data_path: str = "data/processed/criteo_sample_500k.parquet",
+    use_full: bool = False,
+    sample_size: int = 500_000,
     target_outcome: str = "conversion",
     device: str = "auto",
 ):
     """Execute large-scale Criteo benchmark on GPU workstation."""
+    from src.data.download_criteo import download_criteo, extract_criteo_subsample, DEFAULT_RAW_DEST
+
     hw = get_hardware_info()
     print("=" * 80)
     print("CRITEO UPLIFT EXPERIMENTAL BENCHMARK (POWER PC ACCELERATION)")
     print(f"Hardware: {hw['cpu_count']} CPU Threads | GPU: {hw['gpu_name']} ({hw['gpu_mem_gb']} GB VRAM)")
     print("=" * 80)
 
-    p = Path(data_path)
-    if not p.exists():
-        print(f"[ERROR] Data file not found at {data_path}.")
-        print("To download or prepare data on the Power PC, run:")
-        print("  python -m src.data.download_criteo download")
-        print("  python -m src.data.download_criteo sample")
-        return
+    raw_path = Path(DEFAULT_RAW_DEST)
+    sample_path = Path("data/processed/criteo_sample_500k.parquet")
+
+    # Step 1: Ensure dataset is downloaded
+    if not raw_path.exists() and not (not use_full and sample_path.exists()):
+        print("\n[INFO] Criteo raw dataset not found. Downloading compressed archive (~300MB)...")
+        download_criteo(dest_path=str(raw_path))
 
     start_t = time.time()
-    print(f"\n[1/4] Loading Criteo data from {p}...")
-    if p.suffix == ".parquet":
-        df = pd.read_parquet(p)
+    if use_full:
+        print(f"\n[1/4] Loading FULL 13.98 Million observation Criteo dataset from {raw_path}...")
+        df = pd.read_csv(raw_path, compression="gzip", dtype={f"f{i}": np.float32 for i in range(12)})
     else:
-        df = pd.read_csv(p)
+        if not sample_path.exists():
+            print(f"\n[INFO] Extracting {sample_size:,} row sample to {sample_path}...")
+            extract_criteo_subsample(source_gz=str(raw_path), output_csv=str(sample_path), sample_size=sample_size)
+        print(f"\n[1/4] Loading {sample_size:,} sample from {sample_path}...")
+        df = pd.read_parquet(sample_path)
 
     feature_cols = [f"f{i}" for i in range(12)]
-    X = df[feature_cols]
-    T = df["treatment"]
-    y = df[target_outcome]
+    X = df[feature_cols].astype(np.float32)
+    T = df["treatment"].astype(np.int32)
+    y = df[target_outcome].astype(np.int32)
 
     n_total = len(df)
     n_train = int(n_total * 0.70)
@@ -64,11 +71,11 @@ def run_criteo_benchmark(
     T_tr, T_te = T.iloc[:n_train], T.iloc[n_train:]
     y_tr, y_te = y.iloc[:n_train], y.iloc[n_train:]
 
-    print(f"Loaded {n_total:,} rows. Train: {len(X_tr):,}, Test: {len(X_te):,}")
-    print(f"Treatment ratio: {T.mean():.2%}, Outcome base rate: {y.mean():.4%}")
+    print(f"Dataset split: Train N = {len(X_tr):,}, Test N = {len(X_te):,}")
+    print(f"Treatment share: {T.mean():.2%}, Conversion rate: {y.mean():.4%}")
 
     # 2. Train Response vs Uplift Models on RTX 4090
-    print("\n[2/4] Training models using GPU hardware acceleration...")
+    print("\n[2/4] Training models using GPU hardware acceleration (RTX 4090)...")
     t0 = time.time()
     resp_model = ResponseBaseline(model_type="xgboost", device=device).fit(X_tr, y_tr)
     print(f"  Response model trained in {time.time() - t0:.2f}s")
@@ -97,8 +104,8 @@ def run_criteo_benchmark(
     q_uplift = compute_qini_score(y_te.values, T_te.values, tau_uplift)
 
     results_table = [
-        {"Dataset": "Criteo", "Model": "Response (XGBoost)", "Qini Score": q_resp},
-        {"Dataset": "Criteo", "Model": "T-Learner Uplift", "Qini Score": q_uplift},
+        {"Dataset": "Criteo Uplift", "Mode": "Full (14M)" if use_full else f"Sample ({sample_size:,})", "Model": "Response (XGBoost)", "Qini Score": q_resp},
+        {"Dataset": "Criteo Uplift", "Mode": "Full (14M)" if use_full else f"Sample ({sample_size:,})", "Model": "T-Learner Uplift", "Qini Score": q_uplift},
     ]
     print("\n" + tabulate(results_table, headers="keys", tablefmt="github", floatfmt=".4f"))
 
@@ -116,11 +123,19 @@ def run_criteo_benchmark(
     with open(out_file, "w") as f:
         f.write("### Table 11: Large-Scale External Replication (Criteo Uplift Benchmark)\n\n")
         f.write(tabulate(results_table, headers="keys", tablefmt="github", floatfmt=".4f") + "\n\n")
-        f.write(f"- Spearman rank correlation rho: {rho:.4f}\n")
-        f.write(f"- Top-10% cohort overlap: {overlap:.1%}\n")
+        f.write(f"- **Spearman Rank Correlation**: rho = {rho:.4f} (p = {pval:.2e})\n")
+        f.write(f"- **Top-10% Cohort Overlap**: {overlap:.1%}\n")
+        f.write(f"- **Total Rows Evaluated**: {n_total:,}\n")
 
     print(f"\n[COMPLETE] Criteo benchmark finished in {time.time() - start_t:.2f} seconds!")
 
 
 if __name__ == "__main__":
-    run_criteo_benchmark()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run Criteo Uplift Benchmark on RTX 4090")
+    parser.add_argument("--full", action="store_true", help="Run on full 13.98M observation dataset (Power PC recommended)")
+    parser.add_argument("--sample-size", type=int, default=500_000, help="Sample size if not running full dataset (default: 500k)")
+    parser.add_argument("--outcome", type=str, default="conversion", choices=["conversion", "visit"], help="Target outcome")
+    args = parser.parse_args()
+
+    run_criteo_benchmark(use_full=args.full, sample_size=args.sample_size, target_outcome=args.outcome)

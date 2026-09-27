@@ -21,22 +21,36 @@ def download_criteo(
     url: str = CRITEO_URL,
     force: bool = False,
 ) -> Path:
-    """Download compressed Criteo uplift benchmark dataset."""
+    """Download compressed Criteo uplift benchmark dataset with progress reporting."""
     dest = Path(dest_path)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     if dest.exists() and not force:
-        print(f"[INFO] Criteo dataset already exists at {dest}.")
+        print(f"[INFO] Criteo dataset already exists at {dest} ({dest.stat().st_size / (1024**2):.1f} MB).")
         return dest
 
-    print(f"[INFO] Downloading Criteo Uplift dataset (~300MB compressed) from {url}...")
+    print(f"[INFO] Downloading Criteo Uplift dataset from {url}...")
     headers = {"User-Agent": "Mozilla/5.0"}
     req = urllib.request.Request(url, headers=headers)
     
-    with urllib.request.urlopen(req, timeout=120) as response, open(dest, "wb") as out_file:
-        shutil.copyfileobj(response, out_file)
+    with urllib.request.urlopen(req, timeout=300) as response, open(dest, "wb") as out_file:
+        total_size = int(response.info().get("Content-Length", 0))
+        downloaded = 0
+        chunk_size = 1024 * 1024  # 1MB chunks
 
-    print(f"[SUCCESS] Criteo dataset downloaded to {dest}")
+        while True:
+            chunk = response.read(chunk_size)
+            if not chunk:
+                break
+            out_file.write(chunk)
+            downloaded += len(chunk)
+            if total_size > 0:
+                pct = (downloaded / total_size) * 100
+                print(f"\r[DOWNLOADING] {downloaded / (1024**2):.1f} / {total_size / (1024**2):.1f} MB ({pct:.1f}%)", end="", flush=True)
+            else:
+                print(f"\r[DOWNLOADING] {downloaded / (1024**2):.1f} MB", end="", flush=True)
+
+    print(f"\n[SUCCESS] Criteo dataset downloaded to {dest} ({dest.stat().st_size / (1024**2):.1f} MB)")
     return dest
 
 
