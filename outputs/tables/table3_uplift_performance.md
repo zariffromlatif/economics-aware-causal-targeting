@@ -2,9 +2,9 @@
 
 |    | Model                       | Family                |   Qini (Conv) |
 |----|-----------------------------|-----------------------|---------------|
-|  0 | Model A2 (XGBoost Response) | Response              |       -1.5847 |
-|  1 | Model B1 (S-Learner)        | Meta-Learner          |       -4.6044 |
-|  2 | Model B2 (T-Learner)        | Meta-Learner          |        0.2775 |
-|  3 | Model B3 (X-Learner)        | Meta-Learner          |       -3.1638 |
-|  4 | Model C (Doubly Robust)     | Doubly Robust         |       -2.4203 |
-|  5 | Hurdle Revenue Uplift       | Revenue Decomposition |        0.9731 |
+|  0 | Model A2 (XGBoost Response) | Response              |       -2.1997 |
+|  1 | Model B1 (S-Learner)        | Meta-Learner          |       -4.1986 |
+|  2 | Model B2 (T-Learner)        | Meta-Learner          |       -1.7132 |
+|  3 | Model B3 (X-Learner)        | Meta-Learner          |       -3.7856 |
+|  4 | Model C (Doubly Robust)     | Doubly Robust         |       -4.3984 |
+|  5 | Hurdle Revenue Uplift       | Revenue Decomposition |       -0.9369 |
